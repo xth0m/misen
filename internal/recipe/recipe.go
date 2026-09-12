@@ -29,10 +29,18 @@ type RecipeSection struct {
 }
 
 
+
+type RecipeMetadata struct {
+	Title string `yaml:"title"`
+	Source string `yaml:"source"`
+	Tags []string `yaml:"tags"`
+	Custom map[string]any `yaml:",inline"`
+}
+
 type Recipe struct {
 	Ingredients []RecipeIngredient
 
-	Metadata	map[string]string
+	Metadata	RecipeMetadata
 	Sections	[]RecipeSection
 }
 

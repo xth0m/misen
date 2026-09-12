@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 
 	"github.com/urfave/cli/v3"
 	"github.com/xth0m/misen/internal/parser"
-	"github.com/xth0m/misen/internal/util"
 )
 
 
@@ -32,9 +32,17 @@ func main() {
 				},
 
 				Action: func(ctx context.Context, c *cli.Command) error {
-					if err := parser.Parse(recipeFilename); err != nil {
-						util.Panic(1, err.Error())
+
+
+					parser := parser.NewParser(recipeFilename)
+					_, err := parser.Parse()
+
+					if err != nil {}
+
+					for _, e := range parser.Errors {
+						fmt.Println(e)
 					}
+
 
 					return nil
 				},

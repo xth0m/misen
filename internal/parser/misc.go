@@ -56,3 +56,18 @@ func (it *ParserIter) matchStr(s string) bool {
 	return false
 }
 
+
+
+func (it *ParserIter) skipWhitespace() {
+	for {
+		switch it.peek() {
+		case ' ', '\t', '\n':
+			it.next()
+
+		default:
+			return
+		}
+	}
+}
+
+
