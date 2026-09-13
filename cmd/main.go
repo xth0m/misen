@@ -8,11 +8,36 @@ import (
 
 	"github.com/urfave/cli/v3"
 	"github.com/xth0m/misen/internal/parser"
+	"github.com/xth0m/misen/internal/recipe"
+	"github.com/xth0m/misen/internal/util"
 )
 
-func main() {
-	var recipeFilename string
+func loadRecipe(filename string) *recipe.Recipe {
+	p := parser.NewParser(filename)
+	r, err := p.Parse()
 
+	if err != nil {
+		util.Panic(2, err.Error())
+	} else if len(p.Errors) > 0 {
+		for _, e := range p.Errors {
+			fmt.Fprintln(os.Stderr, e)
+		}
+
+		os.Exit(1)
+	}
+
+	return r
+}
+
+func viewCmd(ctx context.Context, c *cli.Command) error {
+
+	r := loadRecipe(c.StringArg("filename"))
+	r.Print(os.Stdout)
+
+	return nil
+}
+
+func main() {
 	cmd := &cli.Command{
 		Name:    "misen",
 		Version: "v0.0.1",
@@ -27,29 +52,10 @@ func main() {
 				Usage: "view a misen recipe in a formatted way",
 
 				Arguments: []cli.Argument{
-					&cli.StringArg{Name: "filename", Destination: &recipeFilename},
+					&cli.StringArg{Name: "filename"},
 				},
 
-				Action: func(ctx context.Context, c *cli.Command) error {
-
-					parser := parser.NewParser(recipeFilename)
-					r, err := parser.Parse()
-
-					if err != nil {
-					}
-
-					if len(parser.Errors) > 0 {
-						for _, e := range parser.Errors {
-							fmt.Println(e)
-						}
-
-						return nil
-					}
-
-					r.Print(os.Stdout)
-
-					return nil
-				},
+				Action: viewCmd,
 			},
 		},
 	}
