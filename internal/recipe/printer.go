@@ -39,10 +39,10 @@ func buildInstruction(r *Recipe, instr *RecipeSection) string {
 
 	for _, node := range instr.Instructions {
 		switch node := node.(type) {
-		case RecipeText:
+		case *RecipeText:
 			sb.WriteString(node.Content)
 
-		case RecipeIngredientDecl:
+		case *RecipeIngredientDecl:
 			fmt.Fprintf(&sb, "%s", Au.Bold(Au.Cyan(r.Ingredients[node.Idx].Name)))
 		}
 	}
@@ -61,14 +61,14 @@ func (r *Recipe) Print(ofd *os.File) {
 	fmt.Fprintln(ofd)
 
 	for _, ingredient := range r.Ingredients {
-		printIngredient(ofd, &ingredient)
+		printIngredient(ofd, ingredient)
 		fmt.Fprintln(ofd)
 	}
 
 	fmt.Fprintf(ofd, "\n-----------------------\n\n")
 
 	for idx, instruction := range r.Sections {
-		output := buildInstruction(r, &instruction)
+		output := buildInstruction(r, instruction)
 
 		numStr := fmt.Sprintf("%*d", 2, idx+1)
 		fmt.Fprintf(ofd, "%s %s ", Au.BrightBlue(numStr), Au.Faint("|"))

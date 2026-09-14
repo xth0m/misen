@@ -1,5 +1,6 @@
 package recipe
 
+
 type RecipeNode interface {
 	Node()
 }
@@ -8,7 +9,9 @@ type RecipeText struct {
 	Content string
 }
 
-func (RecipeText) Node() {}
+func (*RecipeText) Node() {}
+
+
 
 type RecipeIngredient struct {
 	Name string
@@ -21,7 +24,8 @@ type RecipeIngredientDecl struct {
 	Idx int
 }
 
-func (RecipeIngredientDecl) Node() {}
+func (*RecipeIngredientDecl) Node() {}
+
 
 type RecipeSection struct {
 	Ingredients  []int // store the index for Recipe:Ingredients
@@ -36,9 +40,9 @@ type RecipeMetadata struct {
 }
 
 type Recipe struct {
-	Ingredients []RecipeIngredient
+	Ingredients []*RecipeIngredient
 
 	Metadata RecipeMetadata
-	Sections []RecipeSection
+	Sections []*RecipeSection
 }
 

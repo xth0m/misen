@@ -159,8 +159,8 @@ func (p *Parser) parseFrontmatter() {
 	p.Iter.matchStr("---\n")
 }
 
-func (p *Parser) parseSection() (recipe.RecipeSection, bool) {
-	node := recipe.RecipeSection{
+func (p *Parser) parseSection() (*recipe.RecipeSection, bool) {
+	node := &recipe.RecipeSection{
 		Ingredients:  make([]int, 0),
 		Instructions: make([]recipe.RecipeNode, 0),
 	}
@@ -175,18 +175,18 @@ func (p *Parser) parseSection() (recipe.RecipeSection, bool) {
 		case ch == 0:
 			if start.pos < p.Iter.pos {
 				node.Instructions = append(node.Instructions,
-					recipe.RecipeText{
+					&recipe.RecipeText{
 						Content: p.Iter.Source[start.pos:p.Iter.pos],
 					})
 				return node, true
 			} else {
-				return recipe.RecipeSection{}, false
+				return nil, false
 			}
 
 		case ch == '\n' && p.Iter.match('\n'):
 			if start.pos < p.Iter.pos {
 				node.Instructions = append(node.Instructions,
-					recipe.RecipeText{
+					&recipe.RecipeText{
 						Content: p.Iter.Source[start.pos : p.Iter.pos-2],
 					})
 			}
@@ -196,7 +196,7 @@ func (p *Parser) parseSection() (recipe.RecipeSection, bool) {
 		case ch == '{':
 			if start.pos < p.Iter.pos-1 {
 				node.Instructions = append(node.Instructions,
-					recipe.RecipeText{
+					&recipe.RecipeText{
 						Content: p.Iter.Source[start.pos : p.Iter.pos-1],
 					})
 			}
@@ -207,16 +207,15 @@ func (p *Parser) parseSection() (recipe.RecipeSection, bool) {
 			idx := len(p.recipe.Ingredients) - 1
 
 			node.Ingredients = append(node.Ingredients, idx)
-			node.Instructions = append(node.Instructions, recipe.RecipeIngredientDecl{Idx: idx})
+			node.Instructions = append(node.Instructions, &recipe.RecipeIngredientDecl{ Idx: idx })
 
 			start = p.Iter.Cursor
 		}
 	}
 }
 
-func (p *Parser) parseIngredient() recipe.RecipeIngredient {
-
-	ingredient := recipe.RecipeIngredient{}
+func (p *Parser) parseIngredient() *recipe.RecipeIngredient {
+	ingredient := &recipe.RecipeIngredient{}
 
 	p.Iter.skipWhitespace()
 
