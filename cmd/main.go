@@ -6,11 +6,15 @@ import (
 	"log"
 	"os"
 
-	"github.com/urfave/cli/v3"
 	"github.com/xth0m/misen/internal/parser"
 	"github.com/xth0m/misen/internal/recipe"
 	"github.com/xth0m/misen/internal/util"
+
+	"github.com/logrusorgru/aurora/v4"
+	"github.com/urfave/cli/v3"
 )
+
+
 
 func loadRecipe(filename string) *recipe.Recipe {
 	p := parser.NewParser(filename)
@@ -30,8 +34,13 @@ func loadRecipe(filename string) *recipe.Recipe {
 }
 
 func viewCmd(ctx context.Context, c *cli.Command) error {
+	if c.StringArg("filename") == "" {
+		cli.ShowSubcommandHelpAndExit(c, 1)
+	}
 
 	r := loadRecipe(c.StringArg("filename"))
+
+	recipe.Au = aurora.New(aurora.WithColors(!c.Bool("no-colors")))
 	r.Print(os.Stdout)
 
 	return nil
@@ -52,7 +61,11 @@ func main() {
 				Usage: "view a misen recipe in a formatted way",
 
 				Arguments: []cli.Argument{
-					&cli.StringArg{Name: "filename"},
+					&cli.StringArg{ Name: "filename" },
+				},
+
+				Flags: []cli.Flag{
+					&cli.BoolFlag{ Name: "no-colors", Value: false },
 				},
 
 				Action: viewCmd,
