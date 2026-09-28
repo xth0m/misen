@@ -59,7 +59,7 @@ func doctorCmd(ctx context.Context, c *cli.Command) error {
 func main() {
 	cmd := &cli.Command{
 		Name:    "misen",
-		Version: "v0.0.1",
+		Version: "v0.1.0",
 		Usage:   "A recipe markup language",
 
 		Suggest:               true,
