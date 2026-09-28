@@ -17,13 +17,13 @@ func printIngredient(ofd *os.File, ingredient *RecipeIngredient) {
 	fmt.Fprintf(ofd, " - ")
 
 	if ingredient.Unit != PIECE {
-		fmt.Fprintf(ofd, "%g %s %s", Au.BrightYellow(ingredient.Qnty), Au.Faint(ingredient.Unit), ingredient.Name)
+		fmt.Fprintf(ofd, "%s %s %s", Au.BrightYellow(ingredient.Qnty.String()), Au.Faint(ingredient.Unit), ingredient.Name)
 	} else {
-		fmt.Fprintf(ofd, "%g %s", Au.BrightYellow(ingredient.Qnty), ingredient.Name)
+		fmt.Fprintf(ofd, "%s %s", Au.BrightYellow(ingredient.Qnty.String()), ingredient.Name)
 	}
 
 	if ingredient.Note != "" {
-		fmt.Fprintf(ofd, " '%s'", Au.Italic(Au.Faint(ingredient.Note)))
+		fmt.Fprintf(ofd, " `%s`", Au.Italic(Au.Faint(ingredient.Note)))
 	}
 }
 
@@ -83,5 +83,4 @@ func (r *Recipe) Print(ofd *os.File) {
 
 		fmt.Fprintf(ofd, "\n\n")
 	}
-
 }
