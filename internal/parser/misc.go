@@ -1,10 +1,13 @@
 package parser
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"unicode/utf8"
 )
+
+
 
 func (it *ParserIter) next() rune {
 	if it.pos >= len(it.Source) {
@@ -33,6 +36,13 @@ func (it *ParserIter) peek() rune {
 	r, _ := utf8.DecodeRuneInString(it.Source[it.pos:])
 
 	return r
+}
+
+func (it *ParserIter) peekFar() rune {
+	tempIt := *it
+
+	tempIt.skipWhitespace()
+	return tempIt.peek()
 }
 
 func (it *ParserIter) match(ch rune) bool {
@@ -80,6 +90,9 @@ func (it *ParserIter) consume(ch rune) bool {
 	return false
 }
 
+
+
+
 func (it *ParserIter) until(del rune) (string, bool) {
 	tempIt := *it
 
@@ -103,14 +116,17 @@ func (it *ParserIter) until(del rune) (string, bool) {
 	return slice, true
 }
 
-func (it *ParserIter) lexNum() (float64, bool) {
+func (it *ParserIter) lexNum() (float64, bool, error) {
 	tempIt := *it
+
+	integer := true
 
 	for tempIt.peek() >= '0' && tempIt.peek() <= '9' {
 		tempIt.next()
 	}
 
-	if tempIt.pos != it.pos && (tempIt.match('.') || tempIt.match('/')) {
+	if tempIt.pos != it.pos && tempIt.match('.') {
+		integer = false
 
 		for tempIt.peek() >= '0' && tempIt.peek() <= '9' {
 			tempIt.next()
@@ -118,12 +134,16 @@ func (it *ParserIter) lexNum() (float64, bool) {
 	}
 
 	if tempIt.pos == it.pos {
-		return -1, false
+		return 0, false, fmt.Errorf("expected quantity")
 	}
 
-	n, _ := strconv.ParseFloat(it.Source[it.pos:tempIt.pos], 64)
+	n, err := strconv.ParseFloat(it.Source[it.pos:tempIt.pos], 64)
+	if err != nil {
+		return 0, false, err
+	}
 
 	*it = tempIt
 
-	return n, true
+	return n, integer, nil
 }
+

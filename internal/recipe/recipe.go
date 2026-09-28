@@ -1,5 +1,7 @@
 package recipe
 
+import "fmt"
+
 
 type RecipeNode interface {
 	Node()
@@ -13,9 +15,45 @@ func (*RecipeText) Node() {}
 
 
 
+type QuantityKind int
+const (
+	Whole QuantityKind = iota
+	Decimal
+	Fraction
+	WholeFrac
+)
+
+type Quantity struct {
+	Kind QuantityKind
+
+	Whole int64
+	Decimal float64
+	Num, Den int64
+}
+
+func (q Quantity) String() string {
+	switch q.Kind {
+	case Whole:
+		return fmt.Sprintf("%d", q.Whole)
+
+	case Decimal:
+		return fmt.Sprintf("%g", q.Decimal)
+
+	case Fraction:
+		return fmt.Sprintf("%d/%d", q.Num, q.Den)
+
+	case WholeFrac:
+		return fmt.Sprintf("%d %d/%d", q.Whole, q.Num, q.Den)
+	}
+
+	return ""
+}
+
+
 type RecipeIngredient struct {
 	Name string
-	Qnty float64
+	Qnty Quantity
+
 	Unit IngredientUnit
 	Note string
 }

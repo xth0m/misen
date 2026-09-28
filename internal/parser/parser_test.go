@@ -18,17 +18,17 @@ func TestParseIngredient(t *testing.T) {
 			input: "{flour: 500gr}",
 			expected: recipe.RecipeIngredient{
 				Name: "flour",
-				Qnty: 500,
+				Qnty: recipe.Quantity{Kind: recipe.Whole, Whole: 500},
 				Unit: recipe.GR,
 			},
 		},
 		{
 			name:  "name with note, quantity and unit",
-			input: "{water 'lukewarm': 300lt}",
+			input: "{water `lukewarm`: 300lt}",
 			expected: recipe.RecipeIngredient{
 				Name: "water",
 				Note: "lukewarm",
-				Qnty: 300,
+				Qnty: recipe.Quantity{Kind: recipe.Whole, Whole: 300},
 				Unit: recipe.LT,
 			},
 		},
@@ -37,7 +37,7 @@ func TestParseIngredient(t *testing.T) {
 			input: "{eggs: 4}",
 			expected: recipe.RecipeIngredient{
 				Name: "eggs",
-				Qnty: 4,
+				Qnty: recipe.Quantity{Kind: recipe.Whole, Whole: 4},
 				Unit: recipe.PIECE,
 			},
 		},
@@ -46,8 +46,35 @@ func TestParseIngredient(t *testing.T) {
 			input: "{onion}",
 			expected: recipe.RecipeIngredient{
 				Name: "onion",
-				Qnty: 1,
+				Qnty: recipe.Quantity{Kind: recipe.Whole, Whole: 1},
 				Unit: recipe.PIECE,
+			},
+		},
+		{
+			name:  "decimal quantity",
+			input: "{salt: 0.5tsp}",
+			expected: recipe.RecipeIngredient{
+				Name: "salt",
+				Qnty: recipe.Quantity{Kind: recipe.Decimal, Decimal: 0.5},
+				Unit: recipe.TSP,
+			},
+		},
+		{
+			name:  "fraction quantity",
+			input: "{olive oil: 1/2tbsp}",
+			expected: recipe.RecipeIngredient{
+				Name: "olive oil",
+				Qnty: recipe.Quantity{Kind: recipe.Fraction, Num: 1, Den: 2},
+				Unit: recipe.TBSP,
+			},
+		},
+		{
+			name:  "mixed fraction quantity",
+			input: "{flour: 2 1/2cup}",
+			expected: recipe.RecipeIngredient{
+				Name: "flour",
+				Qnty: recipe.Quantity{Kind: recipe.WholeFrac, Whole: 2, Num: 1, Den: 2},
+				Unit: recipe.CUP,
 			},
 		},
 	}
@@ -73,11 +100,59 @@ func TestParseIngredient(t *testing.T) {
 			}
 
 			if got.Qnty != tt.expected.Qnty {
-				t.Errorf("expected qnty %g, got %g", tt.expected.Qnty, got.Qnty)
+				t.Errorf("expected qnty %+v, got %+v", tt.expected.Qnty, got.Qnty)
 			}
 
 			if got.Unit != tt.expected.Unit {
 				t.Errorf("expected unit %v, got %v", tt.expected.Unit, got.Unit)
+			}
+		})
+	}
+}
+
+func TestParseIngredientErrors(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		expectedMsg string
+	}{
+		{
+			name:        "denominator zero",
+			input:       "{water: 1/0lt}",
+			expectedMsg: "invalid fraction, denominator cannot be '0'",
+		},
+		{
+			name:        "mixed fraction denominator zero",
+			input:       "{water: 2 1/0lt}",
+			expectedMsg: "invalid fraction, denominator cannot be '0'",
+		},
+		{
+			name:        "missing quantity with unit",
+			input:       "{salt: tsp}",
+			expectedMsg: "expected quantity",
+		},
+		{
+			name:        "empty quantity after colon",
+			input:       "{salt: }",
+			expectedMsg: "expected quantity",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := NewParser("test.misen")
+			p.Iter.Source = tt.input
+			p.recipe = &recipe.Recipe{}
+
+			p.Iter.next()
+			p.parseIngredient()
+
+			if len(p.Errors) == 0 {
+				t.Fatalf("expected error containing %q, got no errors", tt.expectedMsg)
+			}
+
+			if p.Errors[0].msg != tt.expectedMsg {
+				t.Errorf("expected error %q, got %q", tt.expectedMsg, p.Errors[0].msg)
 			}
 		})
 	}

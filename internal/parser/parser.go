@@ -26,6 +26,8 @@ type (
 		Filename string
 
 		Iter   ParserIter
+
+		hasError bool
 		Errors []ParserErr
 
 		recipe *recipe.Recipe
@@ -65,11 +67,16 @@ func NewParser(filename string) Parser {
 				loc: 1, col: 1,
 			},
 		},
+		hasError: false,
 		Errors: make([]ParserErr, 0),
 	}
 }
 
 func (p *Parser) reportErrorAt(line string, c Cursor, msg string) {
+	if p.hasError {
+		return
+	}
+
 	err := ParserErr{
 		Filename: p.Filename,
 		Cursor:   c,
@@ -78,6 +85,7 @@ func (p *Parser) reportErrorAt(line string, c Cursor, msg string) {
 	}
 
 	p.Errors = append(p.Errors, err)
+	p.hasError = true
 }
 
 func (p *Parser) reportError(c Cursor, msg string) {
@@ -179,12 +187,14 @@ func (p *Parser) parseSection() (*recipe.RecipeSection, bool) {
 						Content: p.Iter.Source[start.pos:p.Iter.pos],
 					})
 				return node, true
+			} else if len(node.Instructions) > 0 {
+				return node, true
 			} else {
 				return nil, false
 			}
 
 		case ch == '\n' && p.Iter.match('\n'):
-			if start.pos < p.Iter.pos {
+			if start.pos < p.Iter.pos - 2 {
 				node.Instructions = append(node.Instructions,
 					&recipe.RecipeText{
 						Content: p.Iter.Source[start.pos : p.Iter.pos-2],
@@ -202,6 +212,9 @@ func (p *Parser) parseSection() (*recipe.RecipeSection, bool) {
 			}
 
 			ingredient := p.parseIngredient()
+			if p.hasError {
+				break
+			}
 
 			p.recipe.Ingredients = append(p.recipe.Ingredients, ingredient)
 			idx := len(p.recipe.Ingredients) - 1
@@ -211,20 +224,99 @@ func (p *Parser) parseSection() (*recipe.RecipeSection, bool) {
 
 			start = p.Iter.Cursor
 		}
+
+
+		if p.hasError {
+			for !p.Iter.matchStr("\n\n") && p.Iter.peek() != 0 {
+				p.Iter.next()
+			}
+
+			p.hasError = false
+			return nil, true
+		}
+	}
+}
+
+func (p *Parser) parseIngredientQnty() (recipe.Quantity, error) {
+	n, isInt, err := p.Iter.lexNum()
+	if err != nil {
+		return recipe.Quantity{}, err
+	}
+	
+	lexInt := func() (int64, error) {
+		n, isInt, err := p.Iter.lexNum()
+
+		if err != nil {
+			return 0, err
+		}
+
+		if !isInt {
+			return 0, fmt.Errorf("expected integer")
+		}
+
+		return int64(n), nil
+	}
+
+	if isInt {
+		if r := p.Iter.peekFar(); r >= '0' && r <= '9' {
+
+			p.Iter.skipWhitespace()
+
+			// 2 1/2 Case
+			num, err := lexInt()
+			if err != nil {
+				return recipe.Quantity{}, err
+			}
+
+			if !p.Iter.match('/') {
+				return recipe.Quantity{}, fmt.Errorf("expected '/'")
+			}
+
+			den, err := lexInt()
+			if err != nil {
+				return recipe.Quantity{}, err
+			}
+
+			if den == 0 {
+				return recipe.Quantity{}, fmt.Errorf("invalid fraction, denominator cannot be '0'")
+			}
+
+			return recipe.Quantity{
+				Kind: recipe.WholeFrac,
+				Whole: int64(n),
+				Num: num,
+				Den: den,
+			}, nil
+		} else if p.Iter.peek() == '/' {
+			p.Iter.match('/')
+
+			den, err := lexInt()
+			if err != nil {
+				return recipe.Quantity{}, err
+			}
+
+			if den == 0 {
+				return recipe.Quantity{}, fmt.Errorf("invalid fraction, denominator cannot be '0'")
+			}
+
+			return recipe.Quantity{ Kind: recipe.Fraction, Num: int64(n), Den: den }, nil
+		}
+	
+		return recipe.Quantity{ Kind: recipe.Whole, Whole: int64(n) }, nil
+	} else {
+		return recipe.Quantity{ Kind: recipe.Decimal, Decimal: n }, nil
 	}
 }
 
 func (p *Parser) parseIngredient() *recipe.RecipeIngredient {
 	ingredient := &recipe.RecipeIngredient{}
 
-	p.Iter.skipWhitespace()
-
 	start := p.Iter.Cursor
 
 	for {
 		ch := p.Iter.peek()
 
-		if ch != '\'' && ch != ':' && ch != '}' {
+		if ch != 0 && ch != '\n' && ch != '`' && ch != ':' && ch != '}' {
 			p.Iter.next()
 		} else {
 			break
@@ -234,22 +326,28 @@ func (p *Parser) parseIngredient() *recipe.RecipeIngredient {
 	ingredient.Name = strings.TrimSpace(p.Iter.Source[start.pos:p.Iter.pos])
 
 	if len(ingredient.Name) == 0 {
+		p.reportError(start, "no ingredient name")
 	}
 
-	if p.Iter.consume('\'') {
-		note, ok := p.Iter.until('\'')
-		if !ok {
-		}
 
-		ingredient.Note = strings.TrimSpace(note)
-		p.Iter.next()
+	start = p.Iter.Cursor
+
+	if p.Iter.consume('`') {
+		note, ok := p.Iter.until('`')
+		if !ok {
+			p.reportError(start, "no matching ` found in the line")
+		} else {
+			ingredient.Note = strings.TrimSpace(note)
+			p.Iter.next()
+		}
 	}
 
 	if p.Iter.consume(':') {
 		p.Iter.skipWhitespace()
 
-		qnty, ok := p.Iter.lexNum()
-		if !ok {
+		qnty, err := p.parseIngredientQnty()
+		if err != nil {
+			p.reportError(p.Iter.Cursor, err.Error())
 		}
 
 		ingredient.Qnty = qnty
@@ -258,26 +356,28 @@ func (p *Parser) parseIngredient() *recipe.RecipeIngredient {
 
 		start := p.Iter.Cursor
 		unit, ok := p.Iter.until('}')
+		if !ok {
+			p.reportError(p.Iter.Cursor, "no } found")
+		}
 
 		unit = strings.TrimSpace(unit)
 
 		if len(unit) == 0 {
-
 			ingredient.Unit = recipe.PIECE
-
 		} else if u, ok := recipe.IsUnit(unit); ok {
-
 			ingredient.Unit = u
-
 		} else {
 			p.reportError(start, "unknown unit")
 		}
 
-		p.Iter.consume('}')
-
+		if !p.Iter.consume('}') {
+			p.reportError(p.Iter.Cursor, "no } found")
+		}
 	} else if p.Iter.consume('}') {
-		ingredient.Qnty = 1
+		ingredient.Qnty = recipe.Quantity{ Kind: recipe.Whole, Whole: 1 }
 		ingredient.Unit = recipe.PIECE
+	} else {
+		p.reportError(p.Iter.Cursor, "no } found")
 	}
 
 	return ingredient
@@ -306,7 +406,13 @@ func (p *Parser) Parse() (*recipe.Recipe, error) {
 			break
 		}
 
-		p.recipe.Sections = append(p.recipe.Sections, section)
+		if section != nil {
+			p.recipe.Sections = append(p.recipe.Sections, section)
+		}
+
+		if p.Iter.peek() == 0 {
+			break
+		}
 	}
 
 	return p.recipe, nil
