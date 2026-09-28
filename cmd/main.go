@@ -46,6 +46,16 @@ func viewCmd(ctx context.Context, c *cli.Command) error {
 	return nil
 }
 
+func doctorCmd(ctx context.Context, c *cli.Command) error {
+	if c.StringArg("filename") == "" {
+		cli.ShowSubcommandHelpAndExit(c, 1)
+	}
+
+	loadRecipe(c.StringArg("filename"))
+
+	return nil
+}
+
 func main() {
 	cmd := &cli.Command{
 		Name:    "misen",
@@ -69,6 +79,16 @@ func main() {
 				},
 
 				Action: viewCmd,
+			},
+			{
+				Name: "doctor",
+				Usage: "check if a misen recipe is correct",
+
+				Arguments: []cli.Argument{
+					&cli.StringArg{ Name: "filename" },
+				},
+
+				Action: doctorCmd,
 			},
 		},
 	}
