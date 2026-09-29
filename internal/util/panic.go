@@ -13,3 +13,4 @@ func Panic(code int, format string, a ...any) {
 
 	os.Exit(2)
 }
+

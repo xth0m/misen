@@ -283,7 +283,7 @@ func (p *Parser) parseIngredientQnty() (recipe.Quantity, error) {
 
 			return recipe.Quantity{
 				Kind: recipe.WholeFrac,
-				Whole: int64(n),
+				Value: n,
 				Num: num,
 				Den: den,
 			}, nil
@@ -302,9 +302,9 @@ func (p *Parser) parseIngredientQnty() (recipe.Quantity, error) {
 			return recipe.Quantity{ Kind: recipe.Fraction, Num: int64(n), Den: den }, nil
 		}
 	
-		return recipe.Quantity{ Kind: recipe.Whole, Whole: int64(n) }, nil
+		return recipe.Quantity{ Kind: recipe.Whole, Value: n }, nil
 	} else {
-		return recipe.Quantity{ Kind: recipe.Decimal, Decimal: n }, nil
+		return recipe.Quantity{ Kind: recipe.Decimal, Value: n }, nil
 	}
 }
 
@@ -374,7 +374,7 @@ func (p *Parser) parseIngredient() *recipe.RecipeIngredient {
 			p.reportError(p.Iter.Cursor, "no } found")
 		}
 	} else if p.Iter.consume('}') {
-		ingredient.Qnty = recipe.Quantity{ Kind: recipe.Whole, Whole: 1 }
+		ingredient.Qnty = recipe.Quantity{ Kind: recipe.Whole, Value: 1 }
 		ingredient.Unit = recipe.PIECE
 	} else {
 		p.reportError(p.Iter.Cursor, "no } found")

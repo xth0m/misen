@@ -13,13 +13,15 @@ import (
 var Au *aurora.Aurora
 
 
-func printIngredient(ofd *os.File, ingredient *RecipeIngredient) {
+func printIngredient(ofd *os.File, ingredient *RecipeIngredient, scale float64) {
 	fmt.Fprintf(ofd, " - ")
 
+	qnty, unit := NormUnit(ingredient.Qnty.Scale(scale), ingredient.Unit)
+
 	if ingredient.Unit != PIECE {
-		fmt.Fprintf(ofd, "%s %s %s", Au.BrightYellow(ingredient.Qnty.String()), Au.Faint(ingredient.Unit), ingredient.Name)
+		fmt.Fprintf(ofd, "%s %s %s", Au.BrightYellow(qnty.String()), Au.Faint(unit), ingredient.Name)
 	} else {
-		fmt.Fprintf(ofd, "%s %s", Au.BrightYellow(ingredient.Qnty.String()), ingredient.Name)
+		fmt.Fprintf(ofd, "%s %s", Au.BrightYellow(qnty.String()), ingredient.Name)
 	}
 
 	if ingredient.Note != "" {
@@ -61,7 +63,7 @@ func (r *Recipe) Print(ofd *os.File) {
 	fmt.Fprintln(ofd)
 
 	for _, ingredient := range r.Ingredients {
-		printIngredient(ofd, ingredient)
+		printIngredient(ofd, ingredient, r.Scale)
 		fmt.Fprintln(ofd)
 	}
 

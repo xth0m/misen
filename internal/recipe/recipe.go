@@ -1,6 +1,8 @@
 package recipe
 
-import "fmt"
+import (
+	"fmt"
+)
 
 
 type RecipeNode interface {
@@ -26,37 +28,37 @@ const (
 type Quantity struct {
 	Kind QuantityKind
 
-	Whole int64
-	Decimal float64
+	Value float64
 	Num, Den int64
 }
 
 func (q Quantity) String() string {
 	switch q.Kind {
 	case Whole:
-		return fmt.Sprintf("%d", q.Whole)
+		return fmt.Sprintf("%d", int64(q.Value))
 
 	case Decimal:
-		return fmt.Sprintf("%g", q.Decimal)
+		return fmt.Sprintf("%g", q.Value)
 
 	case Fraction:
 		return fmt.Sprintf("%d/%d", q.Num, q.Den)
 
 	case WholeFrac:
-		return fmt.Sprintf("%d %d/%d", q.Whole, q.Num, q.Den)
+		return fmt.Sprintf("%d %d/%d", int64(q.Value), q.Num, q.Den)
 	}
 
 	return ""
 }
 
 
+
 type RecipeIngredient struct {
 	Name string
 	Qnty Quantity
-
 	Unit IngredientUnit
 	Note string
 }
+
 
 type RecipeIngredientDecl struct {
 	Idx int
@@ -82,5 +84,7 @@ type Recipe struct {
 
 	Metadata RecipeMetadata
 	Sections []*RecipeSection
+
+	Scale float64
 }
 

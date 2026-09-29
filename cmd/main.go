@@ -38,7 +38,12 @@ func viewCmd(ctx context.Context, c *cli.Command) error {
 		cli.ShowSubcommandHelpAndExit(c, 1)
 	}
 
+	if c.Float("scale") <= 0 {
+		util.Panic(1, "scale value must be > 0")
+	}
+
 	r := loadRecipe(c.StringArg("filename"))
+	r.Scale = c.Float("scale")
 
 	recipe.Au = aurora.New(aurora.WithColors(!c.Bool("no-colors")))
 	r.Print(os.Stdout)
@@ -76,6 +81,10 @@ func main() {
 
 				Flags: []cli.Flag{
 					&cli.BoolFlag{ Name: "no-colors", Value: false },
+					&cli.FloatFlag{
+						Name: "scale",
+						Value: 1,
+					},
 				},
 
 				Action: viewCmd,
