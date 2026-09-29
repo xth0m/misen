@@ -3,78 +3,16 @@ package recipe
 import "math"
 
 
-
-func gcd(a, b int) int {
-	for b != 0 {
-		a, b = b, a % b
-	}
-
-	return a
-}
-
-
-
-func (q *Quantity) scaleFraction(factor float64) {
-	if factor == math.Trunc(factor) {
-		q.Num *= int64(factor)
-	} else {
-		q.Kind = Decimal
-		q.Value = (float64(q.Num) / float64(q.Den)) * factor
-		return
-	}
-
-	if q.Num == q.Den {
-		q.Kind = Whole
-		q.Value = 1
-	} else if q.Num > q.Den {
-		if (q.Num % q.Den) == 0 {
-			q.Kind = Whole
-			q.Value = float64(q.Num / q.Den)
-		} else {
-			q.Kind = WholeFrac
-			q.Value = float64(q.Num / q.Den)
-			q.Num = q.Num - (q.Den * int64(q.Value))
-		}
-	}
-
-	if t := gcd(int(q.Num), int(q.Den)); t > 1 {
-		q.Num /= int64(t)
-		q.Den /= int64(t)
-	}
-}
-
-func (q *Quantity) scaleWholeFrac(factor float64) {
-	if factor == math.Trunc(factor) {
-		q.Value *= factor
-		q.Num *= int64(factor)
-	} else {
-		q.Kind = Decimal
-		q.Value = (float64(q.Num) / float64(q.Den) + q.Value) * factor
-		return
-	}
-
-	if q.Num == q.Den {
-		q.Kind = Whole
-		q.Value += 1
-	} else if q.Num > q.Den {
-		if (q.Num % q.Den) == 0 {
-			q.Kind = Whole
-			q.Value += float64(q.Num / q.Den)
-		} else {
-			q.Kind = WholeFrac
-			q.Value += float64(q.Num / q.Den)
-			q.Num %= q.Den
-		}
-	}
-
-	if t := gcd(int(q.Num), int(q.Den)); t > 1 {
-		q.Num /= int64(t)
-		q.Den /= int64(t)
-	}
-}
-
 func (q Quantity) Scale(factor float64) Quantity {
 	new := q
+
+	gcd := func(a, b int) int {
+		for b != 0 {
+			a, b = b, a % b
+		}
+
+		return a
+	}
 
 	switch new.Kind {
 	case Whole, Decimal:
@@ -86,11 +24,36 @@ func (q Quantity) Scale(factor float64) Quantity {
 			new.Kind = Decimal
 		}
 
-	case Fraction:
-		new.scaleFraction(factor)
+	case WholeFrac, Fraction:
+		if factor != math.Trunc(factor) {
+			new.Kind = Decimal
+			new.Value = (float64(new.Num) / float64(new.Den) + new.Value) * factor
+			return new
+		}
 
-	case WholeFrac:
-		new.scaleWholeFrac(factor)
+		new.Value *= factor
+		new.Num *= int64(factor)
+
+		if new.Num >= new.Den {
+			new.Value += float64(new.Num / new.Den)
+			new.Num %= new.Den
+
+			switch {
+			case new.Num == 0:
+				new.Kind = Whole
+
+			case new.Num > 0 && new.Value > 0:
+				new.Kind = WholeFrac
+
+			case new.Num > 0 && new.Value == 0:
+				new.Kind = Fraction
+			}
+		}
+
+		if t := gcd(int(new.Num), int(new.Den)); t > 1 {
+			new.Num /= int64(t)
+			new.Den /= int64(t)
+		}
 	}
 
 	return new
@@ -98,30 +61,44 @@ func (q Quantity) Scale(factor float64) Quantity {
 
 
 func NormUnit(q Quantity, u IngredientUnit) (Quantity, IngredientUnit) {
+	if q.Kind == Fraction || q.Kind == WholeFrac {
+		return q, u
+	}
+
 	switch u {
-	case G, GR:
+	case G, GR, ML:
 		if (q.Kind == Whole || q.Kind == Decimal) && q.Value >= 1000 {
 			q.Value /= 1000
-			u = KG
+
+			if u == GR || u == G {
+				u = KG
+			} else {
+				u = LT
+			}
 		}
 
-	case ML:
-		if (q.Kind == Whole || q.Kind == Decimal) && q.Value >= 1000 {
-			q.Value /= 1000
-			u = LT
-		}
-
-	case KG:
+	case KG, LT:
 		if q.Kind == Decimal && q.Value < 1 {
 			q.Value *= 1000
-			u = GR
+
+			if u == KG {
+				u = GR
+			} else {
+				u = ML
+			}
 		}
 
-	case LT:
-		if q.Kind == Decimal && q.Value < 1 {
-			q.Value *= 1000
-			u = ML
+	case TSP:
+		if q.Kind == Whole && (int64(q.Value) % 3 == 0) {
+			q.Value /= 3
+			u = TBSP
 		}
+	}
+
+	if q.Value == math.Trunc(q.Value) {
+		q.Kind = Whole
+	} else {
+		q.Kind = Decimal
 	}
 
 	return q, u
