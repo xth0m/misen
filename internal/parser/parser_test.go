@@ -151,8 +151,8 @@ func TestParseIngredientErrors(t *testing.T) {
 				t.Fatalf("expected error containing %q, got no errors", tt.expectedMsg)
 			}
 
-			if p.Errors[0].msg != tt.expectedMsg {
-				t.Errorf("expected error %q, got %q", tt.expectedMsg, p.Errors[0].msg)
+			if p.Errors[0].Msg != tt.expectedMsg {
+				t.Errorf("expected error %q, got %q", tt.expectedMsg, p.Errors[0].Msg)
 			}
 		})
 	}

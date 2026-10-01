@@ -1,0 +1,8 @@
+@fridge
+milk qnty:1lt expiration-date:2026-10-01 +opened
+minced beef qnty:600kg expiration-date:2026-10-07 +closed
+
+@freezer
+
+@shelf
+flour qnty:3kg +closed

@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/xth0m/misen/internal/pantry"
 	"github.com/xth0m/misen/internal/parser"
 	"github.com/xth0m/misen/internal/recipe"
 	"github.com/xth0m/misen/internal/util"
@@ -61,6 +62,24 @@ func doctorCmd(ctx context.Context, c *cli.Command) error {
 	return nil
 }
 
+
+func pantryCmd(ctx context.Context, c *cli.Command) error {
+	if c.StringArg("filename") == "" {
+		cli.ShowSubcommandHelpAndExit(c, 1)
+	}
+
+	if err := pantry.LoadDB(c.StringArg("filename")); err != nil {
+		util.Panic(1, err.Error())
+	}
+
+	for _, ingredient := range pantry.DB.Data {
+		fmt.Fprintln(os.Stderr, ingredient)
+	}
+
+	return nil
+}
+
+
 func main() {
 	cmd := &cli.Command{
 		Name:    "misen",
@@ -98,6 +117,16 @@ func main() {
 				},
 
 				Action: doctorCmd,
+			},
+			{
+				Name: "pantry",
+				Usage: "view and manage pantry",
+
+				Arguments: []cli.Argument{
+					&cli.StringArg{ Name: "filename" },
+				},
+
+				Action: pantryCmd,
 			},
 		},
 	}

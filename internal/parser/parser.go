@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/logrusorgru/aurora/v4"
 	"github.com/xth0m/misen/internal/recipe"
+	"github.com/xth0m/misen/internal/util"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -28,35 +28,12 @@ type (
 		Iter   ParserIter
 
 		hasError bool
-		Errors []ParserErr
+		Errors []util.Diagnostic
 
 		recipe *recipe.Recipe
 	}
-
-	ParserErr struct {
-		Filename string
-		Cursor
-		line string
-
-		msg string
-	}
 )
 
-func (e ParserErr) String() string {
-	var sb strings.Builder
-
-	gutterWidth := 4
-
-	fmt.Fprintf(&sb, "%s at %s\n", aurora.Red("error"),
-		aurora.Sprintf(aurora.Underline("%s:%d:%d"), e.Filename, e.loc, e.col))
-
-	fmt.Fprintf(&sb, "%*s |\n", gutterWidth, "")
-	fmt.Fprintf(&sb, "%*d | %s\n", gutterWidth, e.loc, e.line)
-	fmt.Fprintf(&sb, "%*s | %*s\n", gutterWidth, "", e.col, "^")
-	fmt.Fprintf(&sb, "%*s = %s\n", gutterWidth, "", e.msg)
-
-	return sb.String()
-}
 
 func NewParser(filename string) Parser {
 	return Parser{
@@ -68,7 +45,7 @@ func NewParser(filename string) Parser {
 			},
 		},
 		hasError: false,
-		Errors: make([]ParserErr, 0),
+		Errors: make([]util.Diagnostic, 0),
 	}
 }
 
@@ -77,11 +54,13 @@ func (p *Parser) reportErrorAt(line string, c Cursor, msg string) {
 		return
 	}
 
-	err := ParserErr{
+	err := util.Diagnostic{
 		Filename: p.Filename,
-		Cursor:   c,
-		line:     line,
-		msg:      msg,
+		Pos: c.pos,
+		Loc: c.loc,
+		Col: c.col,
+		Line: line,
+		Msg: msg,
 	}
 
 	p.Errors = append(p.Errors, err)
