@@ -60,20 +60,20 @@ func (q Quantity) Scale(factor float64) Quantity {
 }
 
 
-func NormUnit(q Quantity, u IngredientUnit) (Quantity, IngredientUnit) {
+func NormUnit(q Quantity) Quantity {
 	if q.Kind == Fraction || q.Kind == WholeFrac {
-		return q, u
+		return q
 	}
 
-	switch u {
+	switch q.Unit {
 	case G, GR, ML:
 		if (q.Kind == Whole || q.Kind == Decimal) && q.Value >= 1000 {
 			q.Value /= 1000
 
-			if u == GR || u == G {
-				u = KG
+			if q.Unit == GR || q.Unit == G {
+				q.Unit = KG
 			} else {
-				u = LT
+				q.Unit = LT
 			}
 		}
 
@@ -81,17 +81,17 @@ func NormUnit(q Quantity, u IngredientUnit) (Quantity, IngredientUnit) {
 		if q.Kind == Decimal && q.Value < 1 {
 			q.Value *= 1000
 
-			if u == KG {
-				u = GR
+			if q.Unit == KG {
+				q.Unit = GR
 			} else {
-				u = ML
+				q.Unit = ML
 			}
 		}
 
 	case TSP:
 		if q.Kind == Whole && (int64(q.Value) % 3 == 0) {
 			q.Value /= 3
-			u = TBSP
+			q.Unit = TBSP
 		}
 	}
 
@@ -101,5 +101,5 @@ func NormUnit(q Quantity, u IngredientUnit) (Quantity, IngredientUnit) {
 		q.Kind = Decimal
 	}
 
-	return q, u
+	return q
 }

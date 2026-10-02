@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/xth0m/misen/internal/pantry"
 	"github.com/xth0m/misen/internal/parser"
@@ -14,6 +15,17 @@ import (
 	"github.com/logrusorgru/aurora/v4"
 	"github.com/urfave/cli/v3"
 )
+
+
+
+var cwd string = func() string {
+	path, err := os.Getwd()
+	if err != nil {
+		util.Panic(2, err.Error())
+	}
+
+	return path
+}()
 
 
 
@@ -62,21 +74,20 @@ func doctorCmd(ctx context.Context, c *cli.Command) error {
 	return nil
 }
 
+func loadPantry(ctx context.Context, c *cli.Command) (context.Context, error) {
+	var pantryFilepath string
 
-func pantryCmd(ctx context.Context, c *cli.Command) error {
-	if c.StringArg("filename") == "" {
-		cli.ShowSubcommandHelpAndExit(c, 1)
+	if p := c.StringArg("filename"); p != "" {
+		pantryFilepath = p
+	} else {
+		pantryFilepath = filepath.Join(cwd, ".db", "pantry")
 	}
 
-	if err := pantry.LoadDB(c.StringArg("filename")); err != nil {
+	if err := pantry.LoadDB(pantryFilepath); err != nil {
 		util.Panic(1, err.Error())
 	}
 
-	for _, ingredient := range pantry.DB.Data {
-		fmt.Fprintln(os.Stderr, ingredient)
-	}
-
-	return nil
+	return ctx, nil
 }
 
 
@@ -126,7 +137,40 @@ func main() {
 					&cli.StringArg{ Name: "filename" },
 				},
 
-				Action: pantryCmd,
+				Commands: []*cli.Command{
+					{
+						Name: "show",
+						Usage: "show pantry",
+
+						Before: loadPantry,
+						Action: func(ctx context.Context, c *cli.Command) error {
+							pantry.PrintQueryRes(pantry.DB.Query(" "))
+							return nil
+						},
+					},
+					{
+						Name: "find",
+						Usage: "find ingredients by attributes",
+
+						Arguments: []cli.Argument{
+							&cli.StringArg{ Name: "query" },
+						},
+
+						Before: loadPantry,
+						Action: func(ctx context.Context, c *cli.Command) error {
+							queryInput := c.StringArg("query")
+
+							if queryInput == "" {
+								cli.ShowSubcommandHelpAndExit(c, 1)
+							}
+
+							res := pantry.DB.Query(queryInput)
+							pantry.PrintQueryRes(res)
+
+							return nil
+						},
+					},
+				},
 			},
 		},
 	}

@@ -4,12 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"time"
-	"unicode"
 
-	"github.com/xth0m/misen/internal/recipe"
+	"github.com/xth0m/misen/internal/parser"
 	"github.com/xth0m/misen/internal/util"
 )
 
@@ -25,30 +23,12 @@ func parseKeyValue(tk string, ingredient *PantryIngredient) (string, error) {
 
 	switch key {
 	case "qnty":
-		index := strings.IndexFunc(value, unicode.IsLetter)
-		if index == -1 {
-			ingredient.Unit = recipe.PIECE
-
-			// so it doesnt panic with ParseFloat later
-			index = len(value)
-
-		} else if index == 0 {
-			return value, fmt.Errorf("there is unit but no quantity")
-		} else {
-			unit, ok := recipe.IsUnit(value[index:])
-			if !ok {
-				return value[index:], fmt.Errorf("unknown unit")
-			}
-
-			ingredient.Unit = unit
-		}
-
-		num, err := strconv.ParseFloat(value[:index], 64)
+		qnty, err := parser.ParseQuantity(value)
 		if err != nil {
-			return value[:index], err
+			return value, err
 		}
 
-		ingredient.Qnty = num
+		ingredient.Qnty = qnty
 
 	case "expiration-date":
 		date, err := time.Parse(time.DateOnly, value)

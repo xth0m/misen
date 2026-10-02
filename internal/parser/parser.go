@@ -216,7 +216,29 @@ func (p *Parser) parseSection() (*recipe.RecipeSection, bool) {
 	}
 }
 
-func (p *Parser) parseIngredientQnty() (recipe.Quantity, error) {
+
+func ParseQuantity(raw string) (recipe.Quantity, error) {
+	p := NewParser("")
+	p.Iter.Source = raw
+
+	qnty, err := p.parseQuantityAmount()
+	if err != nil {
+		return recipe.Quantity{}, err
+	}
+
+	p.Iter.skipWhitespace()
+
+	unit, err := p.parseQuantityUnit(p.Iter.Source[p.Iter.pos:])
+	if err != nil {
+		return recipe.Quantity{}, err
+	}
+
+	qnty.Unit = unit
+
+	return qnty, nil
+}
+
+func (p *Parser) parseQuantityAmount() (recipe.Quantity, error) {
 	n, isInt, err := p.Iter.lexNum()
 	if err != nil {
 		return recipe.Quantity{}, err
@@ -287,6 +309,20 @@ func (p *Parser) parseIngredientQnty() (recipe.Quantity, error) {
 	}
 }
 
+func (p *Parser) parseQuantityUnit(unit string) (recipe.IngredientUnit, error) {
+	unit = strings.TrimSpace(unit)
+
+	if len(unit) == 0 {
+		return recipe.PIECE, nil
+	} else if u, ok := recipe.IsUnit(unit); ok {
+		return u, nil
+	} else {
+		// p.reportError(start, "unknown unit")
+		return recipe.NONE, fmt.Errorf("unknown unit")
+	}
+}
+
+
 func (p *Parser) parseIngredient() *recipe.RecipeIngredient {
 	ingredient := &recipe.RecipeIngredient{}
 
@@ -324,7 +360,7 @@ func (p *Parser) parseIngredient() *recipe.RecipeIngredient {
 	if p.Iter.consume(':') {
 		p.Iter.skipWhitespace()
 
-		qnty, err := p.parseIngredientQnty()
+		qnty, err := p.parseQuantityAmount()
 		if err != nil {
 			p.reportError(p.Iter.Cursor, err.Error())
 		}
@@ -339,22 +375,19 @@ func (p *Parser) parseIngredient() *recipe.RecipeIngredient {
 			p.reportError(p.Iter.Cursor, "no } found")
 		}
 
-		unit = strings.TrimSpace(unit)
-
-		if len(unit) == 0 {
-			ingredient.Unit = recipe.PIECE
-		} else if u, ok := recipe.IsUnit(unit); ok {
-			ingredient.Unit = u
-		} else {
-			p.reportError(start, "unknown unit")
+		u, err := p.parseQuantityUnit(unit)
+		if err != nil {
+			p.reportError(start, err.Error())
 		}
+
+		ingredient.Qnty.Unit = u
 
 		if !p.Iter.consume('}') {
 			p.reportError(p.Iter.Cursor, "no } found")
 		}
 	} else if p.Iter.consume('}') {
 		ingredient.Qnty = recipe.Quantity{ Kind: recipe.Whole, Value: 1 }
-		ingredient.Unit = recipe.PIECE
+		ingredient.Qnty.Unit = recipe.PIECE
 	} else {
 		p.reportError(p.Iter.Cursor, "no } found")
 	}
@@ -369,7 +402,7 @@ func (p *Parser) Parse() (*recipe.Recipe, error) {
 
 	source, err := readRecipe(p.Filename)
 	if err != nil {
-		return nil, err
+		return nil, err 
 	}
 
 	p.Iter.Source = source

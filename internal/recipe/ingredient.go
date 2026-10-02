@@ -3,7 +3,8 @@ package recipe
 type IngredientUnit int
 
 const (
-	PIECE IngredientUnit = iota
+	NONE IngredientUnit = iota
+	PIECE
 	GR
 	G
 	KG

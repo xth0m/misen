@@ -18,8 +18,7 @@ func TestParseIngredient(t *testing.T) {
 			input: "{flour: 500gr}",
 			expected: recipe.RecipeIngredient{
 				Name: "flour",
-				Qnty: recipe.Quantity{Kind: recipe.Whole, Value: 500},
-				Unit: recipe.GR,
+				Qnty: recipe.Quantity{Kind: recipe.Whole, Value: 500, Unit: recipe.GR},
 			},
 		},
 		{
@@ -28,8 +27,7 @@ func TestParseIngredient(t *testing.T) {
 			expected: recipe.RecipeIngredient{
 				Name: "water",
 				Note: "lukewarm",
-				Qnty: recipe.Quantity{Kind: recipe.Whole, Value: 300},
-				Unit: recipe.LT,
+				Qnty: recipe.Quantity{Kind: recipe.Whole, Value: 300, Unit: recipe.LT},
 			},
 		},
 		{
@@ -37,8 +35,7 @@ func TestParseIngredient(t *testing.T) {
 			input: "{eggs: 4}",
 			expected: recipe.RecipeIngredient{
 				Name: "eggs",
-				Qnty: recipe.Quantity{Kind: recipe.Whole, Value: 4},
-				Unit: recipe.PIECE,
+				Qnty: recipe.Quantity{Kind: recipe.Whole, Value: 4, Unit: recipe.PIECE},
 			},
 		},
 		{
@@ -46,8 +43,7 @@ func TestParseIngredient(t *testing.T) {
 			input: "{onion}",
 			expected: recipe.RecipeIngredient{
 				Name: "onion",
-				Qnty: recipe.Quantity{Kind: recipe.Whole, Value: 1},
-				Unit: recipe.PIECE,
+				Qnty: recipe.Quantity{Kind: recipe.Whole, Value: 1, Unit: recipe.PIECE},
 			},
 		},
 		{
@@ -55,8 +51,7 @@ func TestParseIngredient(t *testing.T) {
 			input: "{salt: 0.5tsp}",
 			expected: recipe.RecipeIngredient{
 				Name: "salt",
-				Qnty: recipe.Quantity{Kind: recipe.Decimal, Value: 0.5},
-				Unit: recipe.TSP,
+				Qnty: recipe.Quantity{Kind: recipe.Decimal, Value: 0.5, Unit: recipe.TSP},
 			},
 		},
 		{
@@ -64,8 +59,7 @@ func TestParseIngredient(t *testing.T) {
 			input: "{olive oil: 1/2tbsp}",
 			expected: recipe.RecipeIngredient{
 				Name: "olive oil",
-				Qnty: recipe.Quantity{Kind: recipe.Fraction, Num: 1, Den: 2},
-				Unit: recipe.TBSP,
+				Qnty: recipe.Quantity{Kind: recipe.Fraction, Num: 1, Den: 2, Unit: recipe.TBSP},
 			},
 		},
 		{
@@ -73,8 +67,7 @@ func TestParseIngredient(t *testing.T) {
 			input: "{flour: 2 1/2cup}",
 			expected: recipe.RecipeIngredient{
 				Name: "flour",
-				Qnty: recipe.Quantity{Kind: recipe.WholeFrac, Value: 2, Num: 1, Den: 2},
-				Unit: recipe.CUP,
+				Qnty: recipe.Quantity{Kind: recipe.WholeFrac, Value: 2, Num: 1, Den: 2, Unit: recipe.CUP},
 			},
 		},
 	}
@@ -101,10 +94,6 @@ func TestParseIngredient(t *testing.T) {
 
 			if got.Qnty != tt.expected.Qnty {
 				t.Errorf("expected qnty %+v, got %+v", tt.expected.Qnty, got.Qnty)
-			}
-
-			if got.Unit != tt.expected.Unit {
-				t.Errorf("expected unit %v, got %v", tt.expected.Unit, got.Unit)
 			}
 		})
 	}

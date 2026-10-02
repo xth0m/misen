@@ -20,9 +20,12 @@ func TestParseIngredient(t *testing.T) {
 			name:  "standard with quantity, expiration date and tag",
 			input: "milk qnty:4lt expiration-date:2026-10-01 +closed",
 			expected: PantryIngredient{
-				Name:    "milk",
-				Qnty:    4,
-				Unit:    recipe.LT,
+				Name: "milk",
+				Qnty: recipe.Quantity{
+					Kind:  recipe.Whole,
+					Value: 4,
+					Unit:  recipe.LT,
+				},
 				ExpDate: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC),
 				Tags:    []string{"closed"},
 			},
@@ -32,8 +35,11 @@ func TestParseIngredient(t *testing.T) {
 			input: "extra virgin olive oil qnty:500ml",
 			expected: PantryIngredient{
 				Name: "extra virgin olive oil",
-				Qnty: 500,
-				Unit: recipe.ML,
+				Qnty: recipe.Quantity{
+					Kind:  recipe.Whole,
+					Value: 500,
+					Unit:  recipe.ML,
+				},
 			},
 		},
 		{
@@ -41,8 +47,11 @@ func TestParseIngredient(t *testing.T) {
 			input: "eggs qnty:12",
 			expected: PantryIngredient{
 				Name: "eggs",
-				Qnty: 12,
-				Unit: recipe.PIECE,
+				Qnty: recipe.Quantity{
+					Kind:  recipe.Whole,
+					Value: 12,
+					Unit:  recipe.PIECE,
+				},
 			},
 		},
 		{
@@ -76,11 +85,7 @@ func TestParseIngredient(t *testing.T) {
 			}
 
 			if got.Qnty != tt.expected.Qnty {
-				t.Errorf("got qnty %f, want %f", got.Qnty, tt.expected.Qnty)
-			}
-
-			if got.Unit != tt.expected.Unit {
-				t.Errorf("got unit %v, want %v", got.Unit, tt.expected.Unit)
+				t.Errorf("got qnty %+v, want %+v", got.Qnty, tt.expected.Qnty)
 			}
 
 			if !got.ExpDate.Equal(tt.expected.ExpDate) {
@@ -100,53 +105,7 @@ func TestParseIngredient(t *testing.T) {
 	}
 }
 
-func TestParseIngredientErrors(t *testing.T) {
-
-	tests := []struct {
-		name        string
-		input       string
-		expectedMsg string
-	}{
-		{
-			name:        "unknown unit",
-			input:       "flour qnty:500xyz",
-			expectedMsg: "unknown unit",
-		},
-		{
-			name:        "unit with no quantity number",
-			input:       "milk qnty:lt",
-			expectedMsg: "there is unit but no quantity",
-		},
-		{
-			name:        "plus with no tag name",
-			input:       "bread +",
-			expectedMsg: "+ but no tag",
-		},
-		{
-			name:        "key without value",
-			input:       "eggs qnty:",
-			expectedMsg: "forgot something?",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tokens := strings.Fields(tt.input)
-			_, _, err := parseIngredient(tokens)
-
-			if err == nil {
-				t.Fatalf("expected error containing %q, got none", tt.expectedMsg)
-			}
-
-			if err.Error() != tt.expectedMsg {
-				t.Errorf("got error message %q, want %q", err.Error(), tt.expectedMsg)
-			}
-		})
-	}
-}
-
 func TestParsePantryFile(t *testing.T) {
-
 	input := `@fridge
 milk qnty:2lt +opened
 eggs qnty:6

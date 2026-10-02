@@ -16,12 +16,12 @@ var Au *aurora.Aurora
 func printIngredient(ofd *os.File, ingredient *RecipeIngredient, scale float64) {
 	fmt.Fprintf(ofd, " - ")
 
-	qnty, unit := NormUnit(ingredient.Qnty.Scale(scale), ingredient.Unit)
+	qnty := NormUnit(ingredient.Qnty.Scale(scale))
 
-	if ingredient.Unit != PIECE {
-		fmt.Fprintf(ofd, "%s %s %s", Au.BrightYellow(qnty.String()), Au.Faint(unit), ingredient.Name)
+	if ingredient.Qnty.Unit != PIECE {
+		fmt.Fprintf(ofd, "%s %s %s", Au.BrightYellow(qnty.StringAmount()), Au.Faint(qnty.Unit), ingredient.Name)
 	} else {
-		fmt.Fprintf(ofd, "%s %s", Au.BrightYellow(qnty.String()), ingredient.Name)
+		fmt.Fprintf(ofd, "%s %s", Au.BrightYellow(qnty.StringAmount()), ingredient.Name)
 	}
 
 	if ingredient.Note != "" {
@@ -30,7 +30,6 @@ func printIngredient(ofd *os.File, ingredient *RecipeIngredient, scale float64) 
 }
 
 func printMetadata(ofd *os.File, metadata *RecipeMetadata) {
-
 	fmt.Fprintf(ofd, "Title: %s\n", metadata.Title)
 	fmt.Fprintf(ofd, "Source: %s\n", metadata.Source)
 }

@@ -30,9 +30,11 @@ type Quantity struct {
 
 	Value float64
 	Num, Den int64
+
+	Unit IngredientUnit
 }
 
-func (q Quantity) String() string {
+func (q Quantity) StringAmount() string {
 	switch q.Kind {
 	case Whole:
 		return fmt.Sprintf("%d", int64(q.Value))
@@ -55,7 +57,6 @@ func (q Quantity) String() string {
 type RecipeIngredient struct {
 	Name string
 	Qnty Quantity
-	Unit IngredientUnit
 	Note string
 }
 
